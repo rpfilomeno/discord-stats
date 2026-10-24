@@ -101,6 +101,9 @@ A repo with history worth keeping can opt out of the squash:
 - Data lives in `./data/stats.db` (WAL). It is the only irreplaceable state: the bot
   collects **live only**, so a day it was not running is gone.
 - Back up with `sqlite3 data/stats.db "VACUUM INTO 'data/backup.db'"`.
+- The container starts as root only to `chown ./data` for uid 10001, then drops
+  privileges (that is what `user: "0:0"` in compose is for). Without it a freshly
+  created host dir owned by root makes SQLite fail with `unable to open database file`.
 - Shutdown (`SIGTERM`/Ctrl-C) flushes the in-flight batch.
 - `docker compose logs -f` shows one line per publish: `changed`, `skipped` or `error`.
 

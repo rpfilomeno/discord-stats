@@ -73,7 +73,15 @@ CREATE TABLE IF NOT EXISTS kv(k TEXT PRIMARY KEY, v TEXT NOT NULL);
 
 func Open(dir string, loc *time.Location) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("data dir %s: %w", dir, err)
+	}
+	// Fail with something readable instead of sqlite's "unable to open database
+	// file (14)" when the bind-mounted dir belongs to another uid.
+	if f, err := os.CreateTemp(dir, ".writable"); err != nil {
+		return nil, fmt.Errorf("data dir %s is not writable (fix its owner or set DATA_DIR): %w", dir, err)
+	} else {
+		f.Close()
+		os.Remove(f.Name())
 	}
 	path := filepath.Join(dir, "stats.db")
 	dsn := "file:" + path +

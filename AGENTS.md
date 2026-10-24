@@ -66,6 +66,10 @@ one publish loop.
   READY_SUPPLEMENTAL (guild ids, merged members, presences) and then normal per-guild
   events; guild names and channels therefore come from REST in `hydrateGuilds`. Do not
   wait for `GUILD_CREATE` or "fix" the identify payload because it is missing.
+- **The container starts as root on purpose.** `entrypoint.sh` chowns `/data` (Docker
+  creates a missing bind source owned by root) and then drops to `app` via `su-exec`;
+  compose sets `user: "0:0"` for exactly that. Removing it makes a fresh bind mount fail
+  with `unable to open database file`.
 - **No migrations.** Schema is `CREATE TABLE IF NOT EXISTS`; changing a table's columns
   does nothing to an existing DB. Delete `./data/stats.db` (dev only) after schema edits.
 - `go.mod` requires Go 1.26.5 and the Dockerfile pins `golang:1.26.5-alpine` — bump both

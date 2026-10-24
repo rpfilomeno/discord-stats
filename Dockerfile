@@ -10,9 +10,11 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/statsbot ./cmd/sta
 
 # Run
 FROM alpine:3.22
-RUN apk add --no-cache ca-certificates tzdata && adduser -D -u 10001 app && \
+RUN apk add --no-cache ca-certificates tzdata su-exec && adduser -D -u 10001 app && \
     mkdir -p /data && chown app:app /data
 COPY --from=build /out/statsbot /usr/local/bin/statsbot
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 USER app
 VOLUME /data
-ENTRYPOINT ["statsbot"]
+ENTRYPOINT ["/entrypoint.sh"]

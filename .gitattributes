@@ -1,0 +1,2 @@
+# Keep shell scripts LF so the shebang works inside Alpine.
+*.sh text eol=lf

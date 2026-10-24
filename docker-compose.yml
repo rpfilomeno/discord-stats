@@ -4,6 +4,7 @@ services:
     image: discord-stats:latest
     container_name: discord-stats
     restart: unless-stopped
+    user: "0:0"   # entrypoint chowns ./data for the app user, then drops privileges
     env_file: .env
     volumes:
       - ./data:/data
