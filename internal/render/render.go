@@ -131,10 +131,7 @@ func areaSVG(points []stats.Point) template.HTML {
 	base := padT + innerH
 	n := float64(len(points))
 	step := innerW / math.Max(n-1, 1)
-	slot := step // one day's width on the x axis
-	if n == 1 {
-		step, slot = 0, 28 // a lone day is centered, not stretched over the frame
-	}
+	slot := math.Min(step, 40) // a few days must not stretch one bar over the frame
 
 	var daily int64
 	for _, p := range points {
