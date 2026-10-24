@@ -157,6 +157,10 @@ func cycle(ctx context.Context, cfg *config.Config, st *store.Store, pub *publis
 			slog.Error("aggregate", "guild", g.ID, "err", err)
 			continue
 		}
+		if s.Total == 0 {
+			slog.Warn("no messages yet, skipping publish", "guild", g.ID, "repo", g.Repo)
+			continue
+		}
 		page, err := render.Render(s, cfg.Location)
 		if err != nil {
 			slog.Error("render", "guild", g.ID, "err", err)

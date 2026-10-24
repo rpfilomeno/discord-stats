@@ -89,8 +89,36 @@ func (c *Client) Run(ctx context.Context) error {
 	defer c.sess.Close()
 
 	slog.Info("gateway connected", "guilds", len(c.guilds))
+	c.hydrateGuilds()
 	<-ctx.Done()
 	return nil
+}
+
+// hydrateGuilds reads guild metadata over REST. A user-account session gets
+// READY plus READY_SUPPLEMENTAL and never a GUILD_CREATE, so the gateway alone
+// never reveals guild names or channels.
+func (c *Client) hydrateGuilds() {
+	for id := range c.guilds {
+		sid := strconv.FormatInt(id, 10)
+		g, err := c.sess.GuildWithCounts(sid) // ?with_counts=true is the only place member counts live
+		if err != nil {
+			slog.Error("fetch guild", "guild", id, "err", err)
+			continue
+		}
+		members := int64(g.ApproximateMemberCount)
+		if err := c.st.EnsureGuild(id, g.Name, g.Icon, members); err != nil {
+			slog.Error("ensure guild", "guild", id, "err", err)
+		}
+		chans, err := c.sess.GuildChannels(sid)
+		if err != nil {
+			slog.Error("fetch channels", "guild", id, "err", err)
+			continue
+		}
+		for _, ch := range chans {
+			c.trackChannel(id, ch)
+		}
+		slog.Info("guild ready", "id", id, "name", g.Name, "channels", len(chans), "members", members)
+	}
 }
 
 func (c *Client) onGuildCreate(_ *discordgo.Session, g *discordgo.GuildCreate) {

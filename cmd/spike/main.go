@@ -21,6 +21,9 @@ import (
 func main() {
 	config.LoadDotEnv(".env")
 	dur := flag.Duration("d", 90*time.Second, "how long to listen")
+	debug := flag.Bool("debug", false, "log every gateway frame")
+	caps := flag.Int("caps", -1, "override identify capabilities (-1 keeps the built-in value)")
+	nostate := flag.Bool("nostate", false, "omit client_state from identify")
 	flag.Parse()
 
 	token := os.Getenv("DISCORD_TOKEN")
@@ -34,11 +37,19 @@ func main() {
 		slog.Error("session", "err", err)
 		os.Exit(1)
 	}
+	if *debug {
+		s.LogLevel = discordgo.LogDebug
+	}
+	if *caps >= 0 {
+		s.Identify.Capabilities = *caps
+	}
+	if *nostate {
+		s.Identify.ClientState = nil
+	}
 
-	payload, _ := json.Marshal(struct {
-		Token string
-		*discordgo.Identify
-	}{"<redacted>", &s.Identify})
+	redacted := s.Identify
+	redacted.Token = "<redacted>" // the struct's own token field, not a wrapper
+	payload, _ := json.Marshal(redacted)
 	slog.Info("identify payload", "json", string(payload))
 
 	counts := map[string]int{}
@@ -90,6 +101,6 @@ func main() {
 		slog.Info("result", "guild", id, "name", guilds[id], "messages", counts[id])
 	}
 	if len(counts) == 0 {
-		slog.Warn("no messages seen. If GUILD_CREATE arrived, the server was just quiet; if nothing arrived, the identify payload needs work (try API v9 or a different capabilities value)")
+		slog.Warn("no messages seen. User sessions get READY + READY_SUPPLEMENTAL and no GUILD_CREATE, so an idle server looks the same as a bad payload; use -debug to check that frames arrive.")
 	}
 }

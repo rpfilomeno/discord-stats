@@ -62,6 +62,10 @@ one publish loop.
 
 ## Gotchas
 
+- **A user session never receives `GUILD_CREATE`.** Discord sends READY plus
+  READY_SUPPLEMENTAL (guild ids, merged members, presences) and then normal per-guild
+  events; guild names and channels therefore come from REST in `hydrateGuilds`. Do not
+  wait for `GUILD_CREATE` or "fix" the identify payload because it is missing.
 - **No migrations.** Schema is `CREATE TABLE IF NOT EXISTS`; changing a table's columns
   does nothing to an existing DB. Delete `./data/stats.db` (dev only) after schema edits.
 - `go.mod` requires Go 1.26.5 and the Dockerfile pins `golang:1.26.5-alpine` — bump both

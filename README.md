@@ -112,7 +112,7 @@ A repo with history worth keeping can opt out of the squash:
 | Edits/deletes/reactions | ignored; a message is counted once, as first seen |
 | Emoji | custom emoji only (`<:name:id>`), unicode emoji are not counted |
 | Threads | counted, filed under their thread id |
-| Member count | from `GUILD_CREATE`; may lag until the next reconnect |
+| Member count | approximate, fetched over REST at startup; user sessions never get `GUILD_CREATE` |
 | Downtime | days the collector was offline are shaded in the chart, not silently zero |
 
 ## Discord ToS

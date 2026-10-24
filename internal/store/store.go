@@ -75,7 +75,8 @@ func Open(dir string, loc *time.Location) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return nil, err
 	}
-	dsn := "file:" + filepath.Join(dir, "stats.db") +
+	path := filepath.Join(dir, "stats.db")
+	dsn := "file:" + path +
 		"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -86,7 +87,7 @@ func Open(dir string, loc *time.Location) (*Store, error) {
 
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("schema: %w", err)
+		return nil, fmt.Errorf("open %s: %w", path, err)
 	}
 	return &Store{db: db, loc: loc}, nil
 }
