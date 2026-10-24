@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>{{.GuildName}} — server stats</title>
+<style>
+:root{--bg:#0b0f14;--card:#121820;--line:#1f2937;--fg:#e6edf3;--mut:#8b98a9;
+--acc:#58a6ff;--ok:#3fb950;--warn:#f0883e}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+-webkit-font-smoothing:antialiased}
+main{max-width:1120px;margin:0 auto;padding:28px 20px 56px}
+h1{font-size:26px;margin:0;letter-spacing:-.02em}
+h2{font-size:13px;margin:0 0 14px;text-transform:uppercase;letter-spacing:.09em;color:var(--mut);font-weight:600}
+.hdr{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+.ico{width:54px;height:54px;border-radius:14px;background:var(--card);object-fit:cover}
+.sub{color:var(--mut);font-size:13px;margin:4px 0 0}
+.cov{margin-left:auto;font-size:12px;color:var(--mut);border:1px solid var(--line);
+border-radius:999px;padding:5px 11px;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px}`n@media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}`n@media(max-width:520px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi b{display:block;font-size:26px;font-weight:650;letter-spacing:-.02em;line-height:1.2}
+.kpi span{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:20px}
+.row2{display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:start}
+.row2 .card{margin-bottom:20px}
+@media(max-width:860px){.row2{grid-template-columns:1fr}}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.heat{max-width:520px}
+.note{color:var(--mut);font-size:12px;margin:12px 0 0}
+.bar{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:13px}
+.bn{width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fg)}
+.bt{flex:1;height:7px;background:#0b0f14;border-radius:99px;overflow:hidden}
+.bt i{display:block;height:100%;background:linear-gradient(90deg,#1f6feb,#58a6ff);border-radius:99px}
+.bar b{width:64px;text-align:right;color:var(--mut);font-weight:500;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:11px;text-transform:uppercase;
+letter-spacing:.07em;padding:0 10px 8px;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--fg)}
+td{padding:7px 10px;border-top:1px solid var(--line);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody tr:hover{background:#0e141b}
+td:first-child{color:var(--mut)}
+.av{width:22px;height:22px;border-radius:50%;background:#0b0f14;object-fit:cover;flex:none}
+.who{display:inline-flex;align-items:center;gap:8px}
+.mini{display:inline-block;width:70px;height:5px;background:#0b0f14;border-radius:99px;vertical-align:middle;margin-right:7px;overflow:hidden}
+.mini i{display:block;height:100%;background:#3fb950;border-radius:99px}
+input#q{float:right;background:#0b0f14;border:1px solid var(--line);color:var(--fg);
+border-radius:8px;padding:5px 10px;font-size:12px;width:150px;text-transform:none;letter-spacing:0}
+.cloud{display:flex;flex-wrap:wrap;gap:.35rem .7rem;align-items:baseline;line-height:1.05;padding:2px 0}
+.cloud span{color:var(--acc);white-space:nowrap}
+.emojis{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.emojis div{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--mut);
+background:#0b0f14;border-radius:8px;padding:6px 9px}
+.emojis b{color:var(--fg);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:14px;padding:44px 24px;text-align:center}
+.empty h2{margin-bottom:8px}
+.empty p{color:var(--mut);margin:0;font-size:14px}
+footer{color:var(--mut);font-size:12px;margin-top:34px;line-height:1.7;border-top:1px solid var(--line);padding-top:16px}
+footer a{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<header class="hdr">
+  {{if .Icon}}<img class="ico" src="https://cdn.discordapp.com/icons/{{.GuildID}}/{{.Icon}}.png?size=96" alt="" width="54" height="54" loading="lazy">{{end}}
+  <div>
+    <h1>{{.GuildName}}</h1>
+    <p class="sub">{{if .HasData}}{{.SinceTxt}} → {{.UntilTxt}} · {{.MembersN}} active members · {{.Members}} members in server{{else}}collecting data{{end}}</p>
+  </div>
+  {{if .HasData}}<div class="cov" title="Share of tracked time the collector was actually running">collector up {{.CoveragePct}}%</div>{{end}}
+</header>
+
+{{if .HasData}}
+<section class="kpis">
+  <div class="kpi"><b>{{num .Total}}</b><span>messages</span></div>
+  <div class="kpi"><b>{{num .Active}}</b><span>active members</span></div>
+  <div class="kpi"><b>{{.Days}}</b><span>days tracked</span></div>
+  <div class="kpi"><b>{{short (i .AvgPerDay)}}</b><span>avg / day</span></div>
+  <div class="kpi"><b>{{short (i .AvgChars)}}</b><span>avg chars</span></div>
+  <div class="kpi"><b>{{pct .PctLink}}%</b><span>with links</span></div>
+</section>
+
+<section class="card">
+  <h2>Messages per day</h2>
+  <div class="chart">{{area .Daily}}</div>
+  <p class="note">{{pct .PctFile}}% of messages carried a file · {{pct .PctReply}}% were replies. Red bands mark days the collector was offline — those counts are incomplete, not quiet.</p>
+</section>
+
+<div class="row2">
+  <section class="card">
+    <h2>When people talk <span style="text-transform:none;letter-spacing:0">(local time)</span></h2>
+    <div class="chart">{{heat .Heat}}</div>
+  </section>
+  <section class="card">
+    <h2>Top channels</h2>
+    {{bars .Channels}}
+  </section>
+</div>
+
+<section class="card">
+  <h2>Members <input id="q" placeholder="filter" aria-label="filter members"></h2>
+  <table id="mt">
+    <thead><tr>
+      <th class="num" data-k="0">#</th>
+      <th data-k="1">member</th>
+      <th class="num" data-k="2">messages</th>
+      <th data-k="3">share</th>
+      <th class="num" data-k="4">avg chars</th>
+    </tr></thead>
+    <tbody>
+    {{range .TableRows}}
+      <tr>
+        <td class="num">{{.Alias}}</td>
+        <td><span class="who"><img class="av" src="{{.Avatar}}" alt="" width="22" height="22" loading="lazy">{{if .Name}}{{.Name}}{{else}}user-{{.Alias}}{{end}}</span></td>
+        <td class="num">{{num .Count}}</td>
+        <td><span class="mini"><i style="width:{{pct .Share}}%"></i></span>{{pct .Share}}%</td>
+        <td class="num">{{.Avg}}</td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+  <p class="note">Names are masked: the last three characters are hidden. Message text is never stored or published.</p>
+</section>
+
+<div class="row2">
+  <section class="card">
+    <h2>Words</h2>
+    <div class="cloud">{{cloud .Words}}</div>
+  </section>
+  <section class="card">
+    <h2>Emojis</h2>
+    <div class="emojis">
+      {{range .Emojis}}<div><b>:{{.Name}}:</b><span>{{num .Count}}</span></div>{{end}}
+    </div>
+  </section>
+</div>
+{{else}}
+<section class="empty">
+  <h2>Collecting data</h2>
+  <p>No messages recorded yet. The first report appears once the collector has seen some activity.</p>
+</section>
+{{end}}
+
+<footer>
+  Generated {{.GenTxt}} · times in the server's local timezone · message text is discarded after counting, only aggregate numbers are stored.<br>
+  Self-hosted with <a href="https://github.com/rpfilomeno/discord-stats">discord-stats</a>.
+</footer>
+</main>
+
+<script>
+(function(){
+  var t=document.getElementById('mt'),q=document.getElementById('q');
+  if(!t||!q)return;
+  var body=t.tBodies[0],rows=[].slice.call(body.rows),dir=-1,key=2;
+  function val(r,k){var c=r.cells[k].textContent.trim();var n=parseFloat(c.replace(/[^0-9.\-]/g,''));
+    return isNaN(n)?c.toLowerCase():n;}
+  function sort(k){dir=key===k?-dir:-1;key=k;
+    rows.sort(function(a,b){var x=val(a,k),y=val(b,k);
+      return (x>y?1:x<y?-1:0)*dir;});
+    rows.forEach(function(r){body.appendChild(r);});}
+  [].forEach.call(t.tHead.rows[0].cells,function(th){
+    th.addEventListener('click',function(){sort(+th.dataset.k);});});
+  q.addEventListener('input',function(){
+    var v=q.value.toLowerCase();
+    rows.forEach(function(r){r.style.display=r.textContent.toLowerCase().indexOf(v)>-1?'':'none';});});
+})();
+</script>
+</body>
+</html>
+
+

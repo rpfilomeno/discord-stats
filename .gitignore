@@ -31,3 +31,12 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# discord-stats
+/data/
+.env
+*.db
+*.db-wal
+*.db-shm
+preview.html
+.playwright-mcp/
