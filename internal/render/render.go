@@ -131,6 +131,10 @@ func areaSVG(points []stats.Point) template.HTML {
 	base := padT + innerH
 	n := float64(len(points))
 	step := innerW / math.Max(n-1, 1)
+	slot := step // one day's width on the x axis
+	if n == 1 {
+		step, slot = 0, 28 // a lone day is centered, not stretched over the frame
+	}
 
 	var daily int64
 	for _, p := range points {
@@ -142,7 +146,12 @@ func areaSVG(points []stats.Point) template.HTML {
 	if max == 0 {
 		max = 1
 	}
-	x := func(i int) float64 { return padL + float64(i)*step }
+	x := func(i int) float64 {
+		if n == 1 {
+			return padL + innerW/2
+		}
+		return padL + float64(i)*step
+	}
 	y := func(v float64) float64 { return base - v/float64(max)*innerH }
 
 	// 7-day moving average: the daily series is too jagged to read as a line.
@@ -163,12 +172,12 @@ func areaSVG(points []stats.Point) template.HTML {
 	var pts []string
 	for i, p := range points {
 		pts = append(pts, fmt.Sprintf("%.1f,%.1f", x(i), y(ma[i])))
-		bw := math.Max(step*0.72, 1)
+		bw := math.Max(slot*0.72, 1)
 		fmt.Fprintf(&bars, `<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#58a6ff" opacity="0.22"/>`,
 			x(i)-bw/2, y(float64(p.Count)), bw, base-y(float64(p.Count)))
 		if p.Up >= 0 && p.Up < 720 { // collector was down more than half the day
 			fmt.Fprintf(&holes, `<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="#f85149" opacity="0.12"/>`,
-				x(i)-step/2, padT, math.Max(step, 1), innerH)
+				x(i)-slot/2, padT, math.Max(slot, 1), innerH)
 		}
 	}
 	line.WriteString("M" + pts[0])
@@ -189,8 +198,12 @@ func areaSVG(points []stats.Point) template.HTML {
 		fmt.Fprintf(&b, `<line x1="%.1f" y1="%.1f" x2="%.1f" y2="%.1f" stroke="currentColor" stroke-opacity="0.10" vector-effect="non-scaling-stroke"/>`, padL, yy, chartW-padR, yy)
 		fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="currentColor" opacity="0.55" font-size="10" text-anchor="end">%s</text>`, padL-6, yy+3, short(int64(v)))
 	}
-	fmt.Fprintf(&b, `<path d="%s" fill="#58a6ff" fill-opacity="0.16"/>`, area)
-	fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="#58a6ff" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`, line.String())
+	if n == 1 {
+		fmt.Fprintf(&b, `<circle cx="%.1f" cy="%.1f" r="3" fill="#58a6ff"/>`, x(0), y(ma[0]))
+	} else {
+		fmt.Fprintf(&b, `<path d="%s" fill="#58a6ff" fill-opacity="0.16"/>`, area)
+		fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="#58a6ff" stroke-width="1.8" vector-effect="non-scaling-stroke"/>`, line.String())
+	}
 	// hover targets
 	for i, p := range points {
 		tip := dayLabel(p.Day) + ": " + num(p.Count) + " messages"
@@ -198,11 +211,13 @@ func areaSVG(points []stats.Point) template.HTML {
 			tip += fmt.Sprintf(" · collector up %d%%", p.Up*100/1440)
 		}
 		fmt.Fprintf(&b, `<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="transparent"><title>%s</title></rect>`,
-			x(i)-step/2, padT, math.Max(step, 1), innerH, tip)
+			x(i)-slot/2, padT, math.Max(slot, 1), innerH, tip)
 	}
 	// x labels
 	fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="currentColor" opacity="0.55" font-size="10">%s</text>`, padL, chartH-8, dayLabel(points[0].Day))
-	fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="currentColor" opacity="0.55" font-size="10" text-anchor="end">%s</text>`, chartW-padR, chartH-8, dayLabel(points[len(points)-1].Day))
+	if n > 1 { // one day has one label, not the same date at both ends
+		fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" fill="currentColor" opacity="0.55" font-size="10" text-anchor="end">%s</text>`, chartW-padR, chartH-8, dayLabel(points[len(points)-1].Day))
+	}
 	b.WriteString(`</svg>`)
 	return template.HTML(b.String())
 }

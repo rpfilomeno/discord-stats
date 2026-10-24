@@ -88,3 +88,28 @@ func TestRenderZeroMax(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A lone day must keep its bar inside the frame and still draw a visible marker.
+func TestRenderSingleDay(t *testing.T) {
+	s := sample()
+	s.Daily = []stats.Point{{Day: 100, Count: 3, Up: 1440}}
+	out, err := Render(s, time.UTC)
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := bytes.Index(out, []byte(`viewBox="0 0 1000 260"`))
+	if start < 0 {
+		t.Fatal("daily chart missing")
+	}
+	end := bytes.Index(out[start:], []byte("</svg>"))
+	if end < 0 {
+		t.Fatal("daily chart not closed")
+	}
+	chart := out[start : start+end]
+	if bytes.Contains(chart, []byte(`x="-`)) {
+		t.Error("chart draws outside its viewBox: a single day is stretched over the frame")
+	}
+	if !bytes.Contains(chart, []byte("<circle")) {
+		t.Error("single day has no visible point marker")
+	}
+}
