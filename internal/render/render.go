@@ -16,6 +16,10 @@ import (
 //go:embed template.html
 var tplSrc string
 
+// Version is the build stamp printed in the footer. The Dockerfile sets it with
+// -X .../internal/render.Version=<commit>; "dev" means the build could not see git.
+var Version = "dev"
+
 var tpl = template.Must(template.New("page").Funcs(template.FuncMap{
 	"num":   num,
 	"short": short,
@@ -34,6 +38,7 @@ type page struct {
 	SinceTxt  string
 	UntilTxt  string
 	GenTxt    string
+	VerTxt    string
 	DayCount  int
 	MembersN  int
 	TableRows []row
@@ -51,6 +56,7 @@ type row struct {
 func Render(s stats.Stats, loc *time.Location) ([]byte, error) {
 	p := page{Stats: s, HasData: s.Total > 0, DayCount: len(s.Daily)}
 	p.GenTxt = s.Generated.In(loc).Format("2 Jan 2006, 15:04 MST")
+	p.VerTxt = Version
 	p.MembersN = int(s.Active)
 	if p.HasData {
 		p.SinceTxt = s.Since.In(loc).Format("2 Jan 2006")
@@ -118,9 +124,10 @@ func dayLabel(day int64) string {
 }
 
 const (
-	chartW, chartH   = 1000.0, 260.0
-	padL, padR, padT = 46.0, 10.0, 14.0
-	padB             = 26.0
+	chartW, chartH = 1000.0, 260.0
+	padL, padT     = 46.0, 14.0
+	padR           = 20.0 // half the widest slot, so the last bar and red band stay in the viewBox
+	padB           = 26.0
 )
 
 func areaSVG(points []stats.Point) template.HTML {

@@ -76,9 +76,13 @@ one publish loop.
   together.
 - `docker build` prints `Exited with code 1` in PowerShell even when it succeeds.
   Check for `DONE` / `naming to docker.io/...` instead of the exit code.
+- The footer shows `build <commit>` from `-X .../internal/render.Version`, stamped in the
+  Dockerfile via `git rev-parse`; that is why `.git` is in the build context. If
+  something re-ignores it the footer silently reads `dev` — check it after a deploy.
 - `.env` must be UTF-8 without BOM (PowerShell 5.1 `Set-Content` writes UTF-16 and
   corrupts the first key). `config.LoadDotEnv` only fills variables that are unset, so a
-  real env var wins over `.env`.
+  real env var wins over `.env`. Never round-trip Go/HTML source through
+  `Get-Content | Set-Content`: it flattens lines and mangles `·`/`—` — use the edit tool.
 - `.env` holds a **live user token**: never print it, commit it, or copy it into logs,
   tests or fixtures. `.env` and `data/` are gitignored; keep it that way.
 - The identify payload is only exercised by `go run ./cmd/spike -d 90s`; there is no

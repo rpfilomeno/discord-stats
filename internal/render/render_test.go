@@ -2,6 +2,8 @@ package render
 
 import (
 	"bytes"
+	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -42,6 +44,7 @@ func TestRenderPage(t *testing.T) {
 		"12,345", "general", "hello", "kekw", "Messages per day", "collector up 97%",
 		"https://cdn.discordapp.com/avatars/123456789012345678/abc123.png?size=64",
 		"https://cdn.discordapp.com/embed/avatars/",
+		"build " + Version,
 	} {
 		if !strings.Contains(html, want) {
 			t.Errorf("missing %q", want)
@@ -92,11 +95,13 @@ func TestRenderZeroMax(t *testing.T) {
 // One or two days must keep their bars inside the frame; a lone day also needs a
 // marker and a single label, not a zero-length line with the date printed twice.
 func TestRenderFewDays(t *testing.T) {
-	for _, n := range []int{1, 2} {
+	rectRe := regexp.MustCompile(`<rect x="(-?[\d.]+)" y="[\d.]+" width="([\d.]+)"`)
+	for _, n := range []int{1, 2, 3} {
 		s := sample()
 		s.Daily = s.Daily[:0]
 		for i := 0; i < n; i++ {
-			s.Daily = append(s.Daily, stats.Point{Day: 100 + int64(i), Count: 3, Up: 1440})
+			// Up < 720 draws the red offline band, the widest thing on the chart.
+			s.Daily = append(s.Daily, stats.Point{Day: 100 + int64(i), Count: 3, Up: 440})
 		}
 		out, err := Render(s, time.UTC)
 		if err != nil {
@@ -111,8 +116,14 @@ func TestRenderFewDays(t *testing.T) {
 			t.Fatal("daily chart not closed")
 		}
 		chart := out[start : start+end]
-		if bytes.Contains(chart, []byte(`x="-`)) {
-			t.Errorf("%d day(s): chart draws outside its viewBox", n)
+		// The svg is not clipped (see .chart svg in the template), so a rect that
+		// leaves the viewBox is visible outside the card.
+		for _, m := range rectRe.FindAllSubmatch(chart, -1) {
+			x, _ := strconv.ParseFloat(string(m[1]), 64)
+			w, _ := strconv.ParseFloat(string(m[2]), 64)
+			if x < 0 || x+w > chartW {
+				t.Errorf("%d day(s): rect x=%.1f w=%.1f leaves the viewBox", n, x, w)
+			}
 		}
 		if n == 1 {
 			if !bytes.Contains(chart, []byte("<circle")) {
