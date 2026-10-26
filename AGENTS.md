@@ -12,7 +12,7 @@ go test ./...
 go test ./internal/store -run TestInsertAndAggregate -count=1   # one test
 
 go run ./cmd/spike -d 90s      # needs DISCORD_TOKEN; prints identify payload + guilds
-docker compose up -d --build   # production
+docker compose up -d --build   # local image only; never publish from here
 gofmt -w cmd internal          # NOT third_party
 ```
 
@@ -46,6 +46,12 @@ one publish loop.
   in `GUILD_REPOS` switches to normal appends. `internal/publish` tests assert both.
 - **The page is one self-contained file** (inline CSS, Go-built SVG, ~40 lines of
   vanilla JS). No CDN fonts, no JS libraries; a render test fails past 250 KB.
+- **One publisher: Dokploy.** Production auto-deploys `main` (Dokploy compose app
+  `discordstatbot`) and writes every page repo. A local `docker compose up` with a real
+  token runs its own publish loop against those same repos, so the live page flips
+  between two builds and two message counts. Never run the bot locally with a live
+  token: use `go test`, `go run ./cmd/spike`, and `docker compose build` (image only,
+  no `up`) to inspect things.
 
 ## Vendored discordgo (the biggest trap)
 
